@@ -8,15 +8,25 @@ def read_csv_file(file_path):
     try:
         with open(file_path, 'r') as csvfile:
             reader = csv.reader(csvfile)
-            return pvector([pvector(row) for row in reader])  # Return a pvector (immutable list)
+            return pvector([pvector(row) for row in reader])
     except FileNotFoundError:
         return None
+
+
+# Higher-order function to apply a sequence of operations
+def apply_pipeline(data, operations):
+    for operation in operations:
+        data = operation(data)
+        if data is None:
+            break  # Stop pipeline on failure
+
+    return data
 
 
 # Function to extract a column
 def extract_column(column_index, data):
     try:
-        return pvector(row[column_index] for row in data)  # Use a list comprehension and convert it to a pvector
+        return pvector(row[column_index] for row in data)
     except IndexError:
         return None
 
@@ -24,7 +34,7 @@ def extract_column(column_index, data):
 # Remove a specific number of rows (e.g., the header row)
 def remove_row(row_index, data):
     try:
-        return data[row_index:]  # Slice the pvector to remove rows
+        return data[row_index:]
     except IndexError:
         return None
 
@@ -32,7 +42,7 @@ def remove_row(row_index, data):
 # Convert data to a specific type (e.g., float)
 def convert_to(converter, data):
     try:
-        return pvector(converter(item) for item in data)  # Apply conversion and return a new pvector
+        return pvector(converter(item) for item in data)
     except ValueError:
         return None
 
@@ -59,26 +69,21 @@ def main():
         print("Error: Could not read CSV file.")
         return
 
-    print(f"Extracting column index: {score_column_index}")
-    score_column_values = extract_column(score_column_index, data)
-    if score_column_values is None:
-        print("Error: Could not extract column.")
-        return
+    # Define pipeline of operations
+    operations = [
+        lambda data: extract_column(score_column_index, data),  # Extract column
+        lambda data: remove_row(header_row_index, data),  # Remove header row
+        lambda data: convert_to(float, data)  # Convert to float
+    ]
 
-    print(f"Removing header row: {header_row_index}")
-    removed_header_data = remove_row(header_row_index, score_column_values)
-    if removed_header_data is None:
-        print("Error: Could not remove header row.")
-        return
-
-    print("Converting column values to float")
-    score_column_as_float = convert_to(float, removed_header_data)
-    if score_column_as_float is None:
-        print("Error: Could not convert column values to float.")
+    print("Applying pipeline of operations")
+    processed_data = apply_pipeline(data, operations)
+    if processed_data is None:
+        print("Error: Could not process data.")
         return
 
     print("Calculating average for the column values")
-    result = calculate_average(score_column_as_float)
+    result = calculate_average(processed_data)
     if result is None:
         print("Error: Could not calculate average.")
     else:
